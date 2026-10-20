@@ -1,5 +1,7 @@
 # Excel Dashboard
 
+Publicado en **https://excel-dashboard-beta.vercel.app** · código en https://github.com/mauriciochiriboga/excel-dashboard
+
 Convierte cualquier archivo Excel (.xlsx) o CSV con tablas rectangulares en un dashboard analítico interactivo, sin configuración previa. El archivo se procesa íntegramente en el navegador: nada se envía a un servidor.
 
 ## Correr en local
@@ -25,11 +27,15 @@ También puedes abrir un archivo por URL: `http://localhost:3000/?url=/ruta/al/a
 
 ## Publicar
 
-El proyecto está pensado para Vercel:
+El proyecto está publicado en Vercel (proyecto `excel-dashboard`, alias `excel-dashboard-beta.vercel.app`).
 
-1. Sube el repositorio a GitHub.
-2. En vercel.com, **Add New Project**, importa el repositorio y acepta los valores por defecto (framework Next.js).
-3. Cada `git push` a `main` publica una nueva versión.
+Desde la terminal, con la CLI de Vercel autenticada:
+
+```bash
+vercel deploy --prod
+```
+
+Para que cada `git push` a `main` publique automáticamente, conecta el repositorio de GitHub al proyecto en vercel.com (Settings → Git).
 
 No hay variables de entorno ni backend en esta fase.
 
