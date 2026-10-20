@@ -26,7 +26,7 @@ export function Tarjeta({ children, className, titulo, accion }: { children: Rea
   return (
     <section className={cx("rounded-lg border border-borde bg-superficie p-4 min-w-0", className)}>
       {(titulo || accion) && (
-        <header className="mb-3 flex items-start justify-between gap-3">
+        <header className="mb-3 flex flex-wrap items-start justify-between gap-3">
           {titulo && <h3 className="text-sm font-semibold text-texto">{titulo}</h3>}
           {accion}
         </header>

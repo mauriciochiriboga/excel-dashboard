@@ -45,6 +45,7 @@ ctx.onmessage = (ev: MessageEvent<MensajeEntrada>) => {
     } else {
       wb = XLSX.read(buffer, { type: "array", dense: true, cellDates: true, cellNF: false });
     }
+    const tLectura = Math.round(performance.now() - t0);
     enviar({ id, tipo: "progreso", porcentaje: 60, detalle: `${wb.SheetNames.length} hoja(s) leídas` });
     const hojas: HojaCruda[] = [];
     wb.SheetNames.forEach((n, i) => {
@@ -63,7 +64,9 @@ ctx.onmessage = (ev: MessageEvent<MensajeEntrada>) => {
       enviar({ id, tipo: "error", mensaje: "El archivo no contiene ninguna hoja con datos." });
       return;
     }
-    enviar({ id, tipo: "ok", hojas, tiempoMs: Math.round(performance.now() - t0) });
+    const total = Math.round(performance.now() - t0);
+    console.info(`[worker] ${nombre}: lectura SheetJS ${tLectura} ms, extracción ${total - tLectura} ms, total ${total} ms`);
+    enviar({ id, tipo: "ok", hojas, tiempoMs: total });
   } catch (e) {
     const msg = String((e as Error)?.message ?? e);
     let amigable = "No se pudo leer el archivo. Verifica que sea un .xlsx o .csv válido.";

@@ -69,13 +69,13 @@ export function Encabezado() {
           </>
         )}
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex flex-wrap items-center gap-2">
           {hayDatos && (
             <nav className="inline-flex rounded-md border border-borde bg-superficie p-0.5 text-sm">
               {(
                 [
                   ["carga", "Archivos"],
-                  ["entendimiento", "Cómo lo entendí"],
+                  ["entendimiento", "Entendí"],
                   ["dashboard", "Dashboard"],
                 ] as const
               ).map(([v, t]) => (
@@ -83,7 +83,7 @@ export function Encabezado() {
                   key={v}
                   onClick={() => setVista(v)}
                   aria-current={vista === v ? "page" : undefined}
-                  className={cx("rounded px-2.5 py-1 transition-colors", vista === v ? "bg-acento-suave text-acento font-medium" : "text-texto-suave hover:text-texto")}
+                  className={cx("whitespace-nowrap rounded px-2.5 py-1 transition-colors", vista === v ? "bg-acento-suave text-acento font-medium" : "text-texto-suave hover:text-texto")}
                 >
                   {t}
                 </button>
