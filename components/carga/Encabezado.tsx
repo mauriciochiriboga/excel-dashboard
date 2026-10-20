@@ -3,6 +3,8 @@ import { BarChart3, FileSpreadsheet, Search, Table2, Trash2 } from "lucide-react
 import { useStore } from "@/lib/store";
 import { Boton, ConmutadorTema, cx } from "@/components/ui";
 import { fmtNumero } from "@/lib/formato";
+import { MenuUsuario } from "@/components/auth/MenuUsuario";
+import Link from "next/link";
 
 export function Encabezado() {
   const archivos = useStore((s) => s.archivos);
@@ -22,12 +24,12 @@ export function Encabezado() {
   return (
     <header className="sticky top-0 z-30 border-b border-borde bg-fondo/90 backdrop-blur">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-4 py-2">
-        <button onClick={() => setVista(hayDatos ? vista : "carga")} className="flex items-center gap-2 font-semibold">
+        <Link href="/" onClick={() => setVista(hayDatos ? vista : "carga")} className="flex items-center gap-2 font-semibold">
           <span className="grid h-7 w-7 place-items-center rounded-md bg-acento text-white dark:text-fondo">
             <BarChart3 size={16} />
           </span>
           <span className="hidden sm:inline">Excel Dashboard</span>
-        </button>
+        </Link>
 
         {hayDatos && (
           <>
@@ -97,6 +99,7 @@ export function Encabezado() {
             </Boton>
           )}
           <ConmutadorTema />
+          <MenuUsuario />
         </div>
       </div>
     </header>
