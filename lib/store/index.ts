@@ -4,6 +4,28 @@ import type { ArchivoCrudo, Tabla, Filtro, Columna, TipoColumna, Agregacion, Cel
 import { leerArchivo } from "../parsing/leerArchivo";
 import { procesarArchivo } from "../deteccion";
 import { reclasificarColumna } from "../clasificacion";
+import {
+  construirEsquema,
+  crearDashboard,
+  actualizarEsquema,
+  obtenerDashboard,
+  obtenerDashboardPublico,
+  descargarArchivo,
+  type EsquemaGuardado,
+  type DashboardCompleto,
+} from "../supabase/dashboards";
+import { supabaseCliente, supabaseConfigurado } from "../supabase/cliente";
+
+export interface DashboardActual {
+  id: string;
+  titulo: string;
+  propietario_id: string;
+  visibilidad: "privado" | "equipo" | "publico";
+  publico_slug: string | null;
+  equipo_id: string | null;
+  archivo_ruta: string;
+  puedeEditar: boolean;
+}
 
 export type Vista = "carga" | "entendimiento" | "dashboard";
 export type Pestana = "resumen" | "tendencias" | "segmentos" | "distribucion" | "relaciones" | "explorador" | "datos";
@@ -26,11 +48,21 @@ interface Estado {
   cargas: Carga[];
   errores: { archivo: string; mensaje: string }[];
   paletaAbierta: boolean;
+  /** Dashboard guardado en Supabase que está abierto, si lo hay. */
+  dashboardActual: DashboardActual | null;
+  cambiosSinGuardar: boolean;
 
   cargarArchivos: (files: File[]) => Promise<void>;
   cargarMuestra: () => Promise<void>;
   /** Carga un archivo desde una URL (misma origen o CORS habilitado). */
   cargarDesdeUrl: (url: string, nombre?: string) => Promise<void>;
+  /** Abre un dashboard guardado (requiere sesión con permiso). */
+  abrirDashboard: (id: string) => Promise<void>;
+  /** Abre un dashboard publicado por slug, sin sesión. */
+  abrirPublico: (slug: string) => Promise<void>;
+  /** Guarda el archivo activo y el esquema; crea el dashboard si no existe. Devuelve el id. */
+  guardarActual: (titulo?: string) => Promise<string | null>;
+  setDashboardActual: (d: DashboardActual | null) => void;
   seleccionarArchivo: (id: string) => void;
   seleccionarTabla: (id: string) => void;
   setVista: (v: Vista) => void;
@@ -113,6 +145,8 @@ export const useStore = create<Estado>((set, get) => ({
   cargas: [],
   errores: [],
   paletaAbierta: false,
+  dashboardActual: null,
+  cambiosSinGuardar: false,
 
   cargarArchivos: async (files) => {
     for (const file of files) {
@@ -122,6 +156,7 @@ export const useStore = create<Estado>((set, get) => ({
         set((s) => ({ cargas: s.cargas.map((c) => (c.id === cargaId ? { ...c, porcentaje, detalle } : c)) }));
       try {
         const crudo = await leerArchivo(file, { onProgreso: actualizar });
+        crudo.file = file;
         actualizar(100, "Detectando tablas…");
         await new Promise((r) => setTimeout(r, 0));
         const tablas = aplicarEsquemaGuardado(procesarArchivo(crudo), crudo.nombre);
@@ -197,6 +232,7 @@ export const useStore = create<Estado>((set, get) => ({
         return nueva;
       }),
       filtros: s.filtros.filter((f) => f.columnaId !== columnaId),
+      cambiosSinGuardar: true,
     })),
   cambiarAgregacion: (tablaId, columnaId, ag) =>
     set((s) => ({
@@ -206,6 +242,7 @@ export const useStore = create<Estado>((set, get) => ({
         guardarEsquema({ ...nueva, archivoId: nombreDe(s, t.archivoId) });
         return nueva;
       }),
+      cambiosSinGuardar: true,
     })),
   marcarPrincipal: (tablaId, columnaId) =>
     set((s) => ({
@@ -215,6 +252,7 @@ export const useStore = create<Estado>((set, get) => ({
         guardarEsquema({ ...nueva, archivoId: nombreDe(s, t.archivoId) });
         return nueva;
       }),
+      cambiosSinGuardar: true,
     })),
 
   alternarFiltro: (columnaId, valor) =>
@@ -226,14 +264,129 @@ export const useStore = create<Estado>((set, get) => ({
       const filtros = valores.length === 0
         ? s.filtros.filter((f) => f.columnaId !== columnaId)
         : s.filtros.map((f) => (f.columnaId === columnaId ? { ...f, valores, rango: undefined } : f));
-      return { filtros };
+      return { filtros, cambiosSinGuardar: true };
     }),
   fijarFiltro: (f) =>
-    set((s) => ({ filtros: [...s.filtros.filter((x) => x.columnaId !== f.columnaId), f] })),
-  quitarFiltro: (columnaId) => set((s) => ({ filtros: s.filtros.filter((f) => f.columnaId !== columnaId) })),
-  limpiarFiltros: () => set({ filtros: [] }),
+    set((s) => ({ filtros: [...s.filtros.filter((x) => x.columnaId !== f.columnaId), f], cambiosSinGuardar: true })),
+  quitarFiltro: (columnaId) => set((s) => ({ filtros: s.filtros.filter((f) => f.columnaId !== columnaId), cambiosSinGuardar: true })),
+  limpiarFiltros: () => set({ filtros: [], cambiosSinGuardar: true }),
   setPaletaAbierta: (paletaAbierta) => set({ paletaAbierta }),
+  setDashboardActual: (dashboardActual) => set({ dashboardActual }),
+
+  abrirDashboard: async (id) => {
+    try {
+      const d = await obtenerDashboard(id);
+      await abrirRemoto(d, set, get);
+    } catch (e) {
+      set((s) => ({ errores: [...s.errores, { archivo: "dashboard", mensaje: (e as Error).message }] }));
+    }
+  },
+
+  abrirPublico: async (slug) => {
+    try {
+      const d = await obtenerDashboardPublico(slug);
+      await abrirRemoto(d, set, get);
+    } catch (e) {
+      set((s) => ({ errores: [...s.errores, { archivo: "dashboard", mensaje: (e as Error).message }] }));
+    }
+  },
+
+  guardarActual: async (titulo) => {
+    const s = get();
+    const archivo = s.archivos.find((a) => a.id === s.archivoActivo);
+    if (!archivo) throw new Error("No hay ningún archivo activo.");
+    const tablas = s.tablas.filter((t) => t.archivoId === archivo.id);
+    const activa = tablas.find((t) => t.id === s.tablaActiva) ?? null;
+    const esquema = construirEsquema(tablas, activa, s.filtros, s.pestana);
+    if (s.dashboardActual) {
+      await actualizarEsquema(s.dashboardActual.id, esquema);
+      set({ cambiosSinGuardar: false });
+      return s.dashboardActual.id;
+    }
+    if (!archivo.file) throw new Error("No se conserva el archivo original; vuelve a cargarlo para guardarlo.");
+    const id = await crearDashboard(titulo || archivo.nombre, archivo.file, esquema);
+    const d = await obtenerDashboard(id);
+    set({ dashboardActual: aDashboardActual(d, true), cambiosSinGuardar: false });
+    return id;
+  },
 }));
+
+function aDashboardActual(d: DashboardCompleto, puedeEditar: boolean): DashboardActual {
+  return {
+    id: d.id,
+    titulo: d.titulo,
+    propietario_id: d.propietario_id,
+    visibilidad: d.visibilidad,
+    publico_slug: d.publico_slug,
+    equipo_id: d.equipo_id,
+    archivo_ruta: d.archivo_ruta,
+    puedeEditar,
+  };
+}
+
+type Set = (p: Partial<Estado> | ((s: Estado) => Partial<Estado>)) => void;
+
+/** Descarga el archivo de un dashboard remoto, lo procesa y aplica el esquema guardado. */
+async function abrirRemoto(d: DashboardCompleto, set: Set, get: () => Estado) {
+  set({ archivos: [], tablas: [], archivoActivo: null, tablaActiva: null, filtros: [], dashboardActual: null, errores: [] });
+  const cargaId = `remoto_${d.id}`;
+  set((s) => ({ cargas: [...s.cargas, { id: cargaId, nombre: d.archivo_nombre, porcentaje: 5, detalle: "Descargando el archivo…" }] }));
+  try {
+    const file = await descargarArchivo(d);
+    set((s) => ({ cargas: s.cargas.filter((c) => c.id !== cargaId) }));
+    await get().cargarArchivos([file]);
+    const s = get();
+    const archivo = s.archivos[s.archivos.length - 1];
+    if (!archivo) return;
+    const tablas = aplicarEsquemaRemoto(s.tablas.filter((t) => t.archivoId === archivo.id), d.esquema);
+    const activa = d.esquema.tablaActiva
+      ? tablas.find((t) => t.hoja === d.esquema.tablaActiva!.hoja && t.nombre === d.esquema.tablaActiva!.nombre)
+      : undefined;
+    const filtros: Filtro[] = (d.esquema.filtros ?? []).map((f) => ({
+      ...f,
+      valores: f.valores.map((v) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}T/.test(v) ? new Date(v) : v)),
+    }));
+    // Permiso de edición: propietario, o alguien a quien la política RLS le permite actualizar.
+    let puedeEditar = false;
+    if (supabaseConfigurado) {
+      const { data: u } = await supabaseCliente().auth.getUser();
+      if (u.user) {
+        if (u.user.id === d.propietario_id) puedeEditar = true;
+        else {
+          const { data } = await supabaseCliente().from("dashboards").update({ titulo: d.titulo }).eq("id", d.id).select("id");
+          puedeEditar = (data?.length ?? 0) > 0;
+        }
+      }
+    }
+    set({
+      tablas: [...s.tablas.filter((t) => t.archivoId !== archivo.id), ...tablas],
+      tablaActiva: activa?.id ?? tablas[0]?.id ?? null,
+      filtros,
+      pestana: (d.esquema.pestana as Pestana) || "resumen",
+      vista: "dashboard",
+      dashboardActual: aDashboardActual(d, puedeEditar),
+      cambiosSinGuardar: false,
+    });
+  } catch (e) {
+    set((s) => ({ cargas: s.cargas.filter((c) => c.id !== cargaId), errores: [...s.errores, { archivo: d.archivo_nombre, mensaje: (e as Error).message }] }));
+  }
+}
+
+function aplicarEsquemaRemoto(tablas: Tabla[], esquema: EsquemaGuardado): Tabla[] {
+  if (!esquema?.tablas) return tablas;
+  return tablas.map((t) => {
+    const g = esquema.tablas.find((x) => x.hoja === t.hoja && x.nombre === t.nombre);
+    if (!g) return t;
+    let out = t;
+    for (const c of g.columnas) {
+      const col = out.columnas.find((x) => x.id === c.id);
+      if (!col) continue;
+      if (c.tipo !== col.tipo) out = reclasificarColumna(out, col.id, c.tipo);
+      out = { ...out, columnas: out.columnas.map((x) => (x.id === c.id ? { ...x, agregacion: c.agregacion, esPrincipal: c.esPrincipal } : x)) };
+    }
+    return out;
+  });
+}
 
 function nombreDe(s: Estado, archivoId: string) {
   return s.archivos.find((a) => a.id === archivoId)?.nombre ?? archivoId;

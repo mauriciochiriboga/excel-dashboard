@@ -20,6 +20,8 @@ export interface ArchivoCrudo {
   hojas: HojaCruda[];
   /** Milisegundos que tardó el parsing. */
   tiempoMs: number;
+  /** Archivo original, para poder subirlo al guardar. */
+  file?: File;
 }
 
 export type TipoColumna =

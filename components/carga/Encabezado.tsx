@@ -4,6 +4,7 @@ import { useStore } from "@/lib/store";
 import { Boton, ConmutadorTema, cx } from "@/components/ui";
 import { fmtNumero } from "@/lib/formato";
 import { MenuUsuario } from "@/components/auth/MenuUsuario";
+import { BotonGuardar } from "@/components/dashboard/BotonGuardar";
 import Link from "next/link";
 
 export function Encabezado() {
@@ -98,6 +99,7 @@ export function Encabezado() {
               <kbd className="hidden rounded border border-borde px-1 font-mono text-[10px] text-texto-suave md:inline">Ctrl K</kbd>
             </Boton>
           )}
+          <BotonGuardar />
           <ConmutadorTema />
           <MenuUsuario />
         </div>
