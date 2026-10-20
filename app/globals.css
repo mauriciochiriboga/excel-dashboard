@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --fondo: #f7f8f6;
+  --superficie: #ffffff;
+  --superficie-2: #eef0ec;
+  --borde: #d8dcd4;
+  --texto: #1b1f1a;
+  --texto-suave: #5c645a;
+  --acento: #1f6f5f;
+  --acento-suave: #e3f0ec;
+  --positivo: #2e7d4f;
+  --negativo: #b3261e;
+  --aviso: #b26a00;
+}
+
+.dark {
+  --fondo: #121412;
+  --superficie: #1b1e1b;
+  --superficie-2: #242824;
+  --borde: #30352f;
+  --texto: #e8ebe4;
+  --texto-suave: #9aa196;
+  --acento: #6fc7b0;
+  --acento-suave: #1d2f2a;
+  --positivo: #6fcf97;
+  --negativo: #f28b82;
+  --aviso: #f0b454;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-fondo: var(--fondo);
+  --color-superficie: var(--superficie);
+  --color-superficie-2: var(--superficie-2);
+  --color-borde: var(--borde);
+  --color-texto: var(--texto);
+  --color-texto-suave: var(--texto-suave);
+  --color-acento: var(--acento);
+  --color-acento-suave: var(--acento-suave);
+  --color-positivo: var(--positivo);
+  --color-negativo: var(--negativo);
+  --color-aviso: var(--aviso);
+  --font-sans: var(--font-sans), system-ui, sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, monospace;
+}
+
+html {
+  font-family: var(--font-sans);
+}
+
+body {
+  background: var(--fondo);
+  color: var(--texto);
+  overflow-x: hidden;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Barra de desplazamiento discreta */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--borde) transparent;
+}
+
+:focus-visible {
+  outline: 2px solid var(--acento);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
