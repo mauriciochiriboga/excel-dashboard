@@ -28,7 +28,7 @@ for (let d = new Date(2023, 0, 1); d < new Date(2025, 0, 1); d.setDate(d.getDate
     filas.push([id++, new Date(d), region, sucursal, cat, pick(canales), pick(vendedores), pick(estados), unidades, ventas, costo, Math.round(((ventas - costo) / ventas) * 1000) / 1000]);
   }
 }
-const ws1 = XLSX.utils.aoa_to_sheet(filas, { cellDates: true });
+const ws1 = XLSX.utils.aoa_to_sheet(filas); // fechas como serial de Excel (sin desfase horario)
 ws1["!cols"] = [{ wch: 8 }, { wch: 12 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 9 }, { wch: 11 }, { wch: 11 }, { wch: 9 }];
 
 // Hoja 2: dos tablas resumen con título, fila de totales y una tabla al lado
@@ -40,6 +40,6 @@ XLSX.utils.sheet_add_aoa(ws2, [["Vendedor", "Antigüedad (años)", "Ventas 2024"
 const wb = XLSX.utils.book_new();
 XLSX.utils.book_append_sheet(wb, ws1, "Ventas");
 XLSX.utils.book_append_sheet(wb, ws2, "Resumen");
-const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx", cellDates: true });
+const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
 writeFileSync("public/muestra.xlsx", buf);
 console.log("filas de ventas:", filas.length - 3, "bytes:", buf.length);

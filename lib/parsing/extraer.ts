@@ -5,7 +5,13 @@ import type { Celda, HojaCruda } from "../tipos";
 function normalizar(c: XLSX.CellObject | undefined): Celda {
   if (!c || c.v === undefined || c.v === null) return null;
   if (c.t === "e") return null; // #N/A, #DIV/0!...
-  if (c.t === "d") return c.v as Date;
+  if (c.t === "d") {
+    // SheetJS entrega la fecha como medianoche UTC; la reconstruimos en hora local
+    // con los mismos componentes para que no retroceda un día en zonas negativas.
+    const d = c.v as Date;
+    if (!(d instanceof Date) || isNaN(d.getTime())) return null;
+    return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), d.getUTCHours(), d.getUTCMinutes(), d.getUTCSeconds());
+  }
   if (c.t === "b") return Boolean(c.v);
   if (c.t === "n") {
     const n = c.v as number;
