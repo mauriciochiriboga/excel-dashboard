@@ -1,5 +1,5 @@
 "use client";
-import type { ConfigIA } from "./config";
+import { espacioDireccion, type ConfigIA } from "./config";
 
 export interface MensajeChat {
   rol: "usuario" | "asistente";
@@ -27,7 +27,7 @@ async function chatOllama(config: ConfigIA, sistema: string, historial: MensajeC
     method: "POST",
     headers: { "Content-Type": "application/json" },
     signal: senal,
-    ...({ targetAddressSpace: "local" } as RequestInit),
+    ...({ targetAddressSpace: espacioDireccion(config.ollamaUrl) } as RequestInit),
     body: JSON.stringify({
       model: config.modelo,
       stream: true,

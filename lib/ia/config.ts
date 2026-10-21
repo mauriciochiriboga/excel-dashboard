@@ -56,13 +56,18 @@ export interface EstadoOllama {
   problema?: "no-responde" | "cors" | "permiso";
 }
 
+/** Chrome distingue «loopback» (localhost/127.0.0.1) de «local» (IP de la red privada). */
+export function espacioDireccion(url: string): "loopback" | "local" {
+  return /^(https?:\/\/)?(localhost|127\.|\[::1\])/i.test(url) ? "loopback" : "local";
+}
+
 /** Detecta Ollama en la máquina del usuario y lista sus modelos. */
 export async function detectarOllama(url: string): Promise<EstadoOllama> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 20000); // margen para el aviso de permiso de red local de Chrome
   try {
     // targetAddressSpace: Chrome exige declararlo para llamar a localhost desde una página https (Local Network Access).
-    const r = await fetch(`${url.replace(/\/$/, "")}/api/tags`, { signal: ctrl.signal, ...({ targetAddressSpace: "local" } as RequestInit) });
+    const r = await fetch(`${url.replace(/\/$/, "")}/api/tags`, { signal: ctrl.signal, ...({ targetAddressSpace: espacioDireccion(url) } as RequestInit) });
     if (!r.ok) return { disponible: false, modelos: [], problema: "no-responde" };
     const j = (await r.json()) as { models?: { name: string; details?: { parameter_size?: string; family?: string } }[] };
     const modelos: ModeloIA[] = (j.models ?? []).map((m) => ({
