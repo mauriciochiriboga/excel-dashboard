@@ -12,6 +12,7 @@ const Dashboard = dynamic(() => import("@/components/dashboard/Dashboard").then(
   loading: () => <p className="p-6 text-sm text-texto-suave">Cargando gráficos…</p>,
 });
 const Paleta = dynamic(() => import("@/components/paleta/PaletaComandos").then((m) => m.PaletaComandos), { ssr: false });
+const Asistente = dynamic(() => import("@/components/ia/Asistente").then((m) => m.Asistente), { ssr: false });
 
 let urlInicialProcesada = false;
 
@@ -77,6 +78,7 @@ export function Aplicacion({ dashboardId, slugPublico }: { dashboardId?: string;
         )}
       </main>
       {hayDatos && <Paleta />}
+      {hayDatos && <Asistente />}
       <footer className="border-t border-borde px-4 py-3 text-center text-xs text-texto-suave">
         {dashboardActual
           ? `Dashboard guardado · ${dashboardActual.puedeEditar ? "puedes editarlo" : "solo lectura"}`

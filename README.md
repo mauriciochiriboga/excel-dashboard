@@ -43,6 +43,7 @@ Para que cada `git push` a `main` publique automáticamente, conecta el reposito
 |---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | `.env.local` y Vercel | URL del proyecto Supabase |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `.env.local` y Vercel | Clave `anon` del proyecto |
+| `ANTHROPIC_API_KEY` | Vercel (opcional) | Habilita los modelos Claude del asistente para todos los usuarios |
 
 Ya están cargadas en Vercel para producción, preview y desarrollo. El archivo `.env.local` está ignorado por git.
 
@@ -57,6 +58,17 @@ supabase db push
 La configuración de autenticación (URL del sitio, redirecciones, confirmación por correo) está en `supabase/config.toml` y se aplica con `supabase config push`. **La confirmación por correo está desactivada** para facilitar las pruebas; para exigirla, pon `enable_confirmations = true` en `[auth.email]` y vuelve a hacer push.
 
 Tablas: `perfiles`, `equipos`, `miembros_equipo`, `invitaciones_equipo`, `dashboards`, `permisos_dashboard`, más el bucket privado `archivos`. Todas con políticas RLS: un dashboard lo ve su propietario, los miembros de su equipo, los usuarios con permiso explícito y cualquiera si es público.
+
+## Asistente de IA (chat y voz sobre los datos)
+
+Botón flotante abajo a la derecha, disponible en «Cómo lo entendí» y en todas las pestañas del dashboard. Recibe como contexto lo que el usuario está viendo (tabla activa, columnas, KPIs, hallazgos, serie, segmentos, estadísticas, correlaciones y filtros) y razona con esas cifras. Incluye preguntas sugeridas por pestaña, dictado por voz y lectura en voz alta (API de voz del navegador, sin enviar audio a ningún servidor).
+
+**Modelos**, con detección automática al abrir el panel:
+
+- **Locales (Ollama)** en la máquina de cada usuario: se listan los modelos instalados en `http://localhost:11434`. El navegador llama a Ollama directamente, así que los datos no salen del equipo. Ollama debe autorizar el origen de la app: ejecuta una vez `scripts/configurar-ollama.ps1` (o copia el comando que muestra el panel de configuración) y reinicia Ollama. Modelos recomendados: `qwen2.5:7b`, `llama3.1:8b`, `gemma3:12b`.
+- **Claude** (Opus 5.5 recomendado, Sonnet 5.5, Haiku 4.5): pasan por la ruta `/api/ia` del servidor. Define `ANTHROPIC_API_KEY` en Vercel para que todos los usuarios los tengan disponibles, o cada usuario puede pegar su propia clave en el panel (se guarda solo en su navegador).
+
+Si no se detecta ningún proveedor, el panel explica cómo activarlo. Un modelo local de 7B en CPU puede tardar uno o dos minutos en la primera respuesta; en GPU responde en segundos.
 
 ## Cuentas, equipos y permisos
 
