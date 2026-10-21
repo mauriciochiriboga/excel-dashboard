@@ -39,3 +39,4 @@ yarn-debug.log*
 yarn-error.log*
 .supabase-db-password
 supabase/usuarios-prueba.md
+usuarios-creados.txt
