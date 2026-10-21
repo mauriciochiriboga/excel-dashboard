@@ -64,7 +64,7 @@ export function espacioDireccion(url: string): "loopback" | "local" {
 /** Detecta Ollama en la máquina del usuario y lista sus modelos. */
 export async function detectarOllama(url: string): Promise<EstadoOllama> {
   const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), 20000); // margen para el aviso de permiso de red local de Chrome
+  const t = setTimeout(() => ctrl.abort(), 30000); // margen para el aviso de permiso de red local de Chrome
   try {
     // targetAddressSpace: Chrome exige declararlo para llamar a localhost desde una página https (Local Network Access).
     const r = await fetch(`${url.replace(/\/$/, "")}/api/tags`, { signal: ctrl.signal, ...({ targetAddressSpace: espacioDireccion(url) } as RequestInit) });
@@ -78,12 +78,12 @@ export async function detectarOllama(url: string): Promise<EstadoOllama> {
     }));
     return { disponible: true, modelos };
   } catch (e) {
-    const esAbort = (e as Error).name === "AbortError";
-    if (esAbort) return { disponible: false, modelos: [], problema: "no-responde" };
-    // Chrome bloquea https → localhost hasta que el usuario concede «acceso a la red local».
+    // Chrome bloquea https → localhost hasta que el usuario concede «acceso a la red local»;
+    // mientras el permiso está pendiente la petición se queda colgada (abort) o falla.
     const permiso = await estadoPermisoRedLocal();
     if (permiso === "prompt" || permiso === "denied") return { disponible: false, modelos: [], problema: "permiso" };
-    return { disponible: false, modelos: [], problema: "cors" };
+    const esAbort = (e as Error).name === "AbortError";
+    return { disponible: false, modelos: [], problema: esAbort ? "no-responde" : "cors" };
   } finally {
     clearTimeout(t);
   }
