@@ -53,7 +53,7 @@ export interface EstadoOllama {
   disponible: boolean;
   modelos: ModeloIA[];
   /** Mensaje de diagnóstico cuando no se puede usar. */
-  problema?: "no-responde" | "cors";
+  problema?: "no-responde" | "cors" | "permiso";
 }
 
 /** Detecta Ollama en la máquina del usuario y lista sus modelos. */
@@ -73,11 +73,24 @@ export async function detectarOllama(url: string): Promise<EstadoOllama> {
     }));
     return { disponible: true, modelos };
   } catch (e) {
-    // Un fallo de red desde una página https suele ser CORS (OLLAMA_ORIGINS) o Ollama apagado.
     const esAbort = (e as Error).name === "AbortError";
-    return { disponible: false, modelos: [], problema: esAbort ? "no-responde" : "cors" };
+    if (esAbort) return { disponible: false, modelos: [], problema: "no-responde" };
+    // Chrome bloquea https → localhost hasta que el usuario concede «acceso a la red local».
+    const permiso = await estadoPermisoRedLocal();
+    if (permiso === "prompt" || permiso === "denied") return { disponible: false, modelos: [], problema: "permiso" };
+    return { disponible: false, modelos: [], problema: "cors" };
   } finally {
     clearTimeout(t);
+  }
+}
+
+/** Estado del permiso de red local de Chrome (null si el navegador no lo expone). */
+export async function estadoPermisoRedLocal(): Promise<PermissionState | null> {
+  try {
+    const p = await navigator.permissions.query({ name: "local-network-access" as PermissionName });
+    return p.state;
+  } catch {
+    return null;
   }
 }
 

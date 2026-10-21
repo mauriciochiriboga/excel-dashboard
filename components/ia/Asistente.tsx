@@ -241,9 +241,11 @@ export function Asistente() {
                     </p>
                     {!listo && (
                       <p className="rounded-md bg-aviso/15 px-2 py-1.5 text-xs text-aviso">
-                        {ollama && !ollama.disponible && !claveServidor && !config?.claveAnthropic
-                          ? "No detecté Ollama ni una clave de Claude. Abre la configuración para activarlo."
-                          : "Elige un modelo en la configuración."}
+                        {ollama?.problema === "permiso"
+                          ? "Chrome necesita tu permiso para usar Ollama. Abre la configuración y pulsa «Autorizar acceso a Ollama»."
+                          : ollama && !ollama.disponible && !claveServidor && !config?.claveAnthropic
+                            ? "No detecté Ollama ni una clave de Claude. Abre la configuración para activarlo."
+                            : "Elige un modelo en la configuración."}
                       </p>
                     )}
                     <div className="flex flex-wrap gap-1.5">
@@ -384,12 +386,26 @@ function Configuracion({
           </>
         ) : (
           <div className="space-y-2">
-            <Etiqueta tono="aviso">{ollama?.problema === "cors" ? "Ollama no acepta llamadas desde esta web" : "Ollama no responde"}</Etiqueta>
-            <p className="text-xs text-texto-suave">
-              {ollama?.problema === "cors"
-                ? "Ollama no acepta llamadas desde esta web, o el navegador pidió permiso de red local y se denegó. Ejecuta una vez este comando en PowerShell, acepta el aviso de Chrome «permitir acceso a la red local» y pulsa «Volver a detectar»:"
-                : "Instala Ollama desde ollama.com, descarga un modelo (por ejemplo «ollama pull qwen2.5:7b») y autoriza esta web con este comando en PowerShell:"}
-            </p>
+            <Etiqueta tono="aviso">
+              {ollama?.problema === "permiso" ? "El navegador necesita tu permiso para hablar con Ollama" : ollama?.problema === "cors" ? "Ollama no acepta llamadas desde esta web" : "Ollama no responde"}
+            </Etiqueta>
+            {ollama?.problema === "permiso" ? (
+              <div className="space-y-2">
+                <p className="text-xs text-texto-suave">
+                  Chrome bloquea las llamadas de una web a tu equipo hasta que lo autorizas. Pulsa el botón: aparecerá un aviso junto a la barra de direcciones («¿Permitir que este sitio acceda a la red local?»). Elige <b>Permitir</b>. Si lo rechazaste antes, haz clic en el icono del candado de la barra de direcciones, activa «Acceso a la red local» y recarga.
+                </p>
+                <Boton variante="primario" onClick={onDetectar} className="w-full justify-center">
+                  Autorizar acceso a Ollama
+                </Boton>
+              </div>
+            ) : (
+              <p className="text-xs text-texto-suave">
+                {ollama?.problema === "cors"
+                  ? "Ollama está en marcha pero no acepta este origen. Ejecuta una vez este comando en PowerShell y pulsa «Volver a detectar»:"
+                  : "Instala Ollama desde ollama.com, descarga un modelo (por ejemplo «ollama pull qwen2.5:7b») y autoriza esta web con este comando en PowerShell:"}
+              </p>
+            )}
+            {ollama?.problema !== "permiso" && (
             <div className="flex items-start gap-1">
               <code className="block max-h-24 flex-1 overflow-auto whitespace-pre-wrap break-all rounded bg-superficie-2 p-2 text-[11px]">{comando}</code>
               <button
@@ -408,6 +424,7 @@ function Configuracion({
                 {copiado ? <Check size={14} /> : <Copy size={14} />}
               </button>
             </div>
+            )}
           </div>
         )}
         <label className="mt-2 flex items-center gap-2 text-xs">
