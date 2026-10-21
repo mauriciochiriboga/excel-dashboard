@@ -5,6 +5,7 @@ import { Boton, ConmutadorTema, cx } from "@/components/ui";
 import { fmtNumero } from "@/lib/formato";
 import { MenuUsuario } from "@/components/auth/MenuUsuario";
 import { BotonGuardar } from "@/components/dashboard/BotonGuardar";
+import { Compartir } from "@/components/dashboard/Compartir";
 import Link from "next/link";
 
 export function Encabezado() {
@@ -100,6 +101,7 @@ export function Encabezado() {
             </Boton>
           )}
           <BotonGuardar />
+          <Compartir />
           <ConmutadorTema />
           <MenuUsuario />
         </div>
