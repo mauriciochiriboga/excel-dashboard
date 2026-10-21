@@ -61,7 +61,8 @@ export async function detectarOllama(url: string): Promise<EstadoOllama> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 2500);
   try {
-    const r = await fetch(`${url.replace(/\/$/, "")}/api/tags`, { signal: ctrl.signal });
+    // targetAddressSpace: Chrome exige declararlo para llamar a localhost desde una página https (Local Network Access).
+    const r = await fetch(`${url.replace(/\/$/, "")}/api/tags`, { signal: ctrl.signal, ...({ targetAddressSpace: "local" } as RequestInit) });
     if (!r.ok) return { disponible: false, modelos: [], problema: "no-responde" };
     const j = (await r.json()) as { models?: { name: string; details?: { parameter_size?: string; family?: string } }[] };
     const modelos: ModeloIA[] = (j.models ?? []).map((m) => ({

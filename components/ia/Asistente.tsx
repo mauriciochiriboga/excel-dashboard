@@ -387,7 +387,7 @@ function Configuracion({
             <Etiqueta tono="aviso">{ollama?.problema === "cors" ? "Ollama no acepta llamadas desde esta web" : "Ollama no responde"}</Etiqueta>
             <p className="text-xs text-texto-suave">
               {ollama?.problema === "cors"
-                ? "Ollama está instalado pero bloquea este origen. Ejecuta una vez este comando en PowerShell y pulsa «Volver a detectar»:"
+                ? "Ollama no acepta llamadas desde esta web, o el navegador pidió permiso de red local y se denegó. Ejecuta una vez este comando en PowerShell, acepta el aviso de Chrome «permitir acceso a la red local» y pulsa «Volver a detectar»:"
                 : "Instala Ollama desde ollama.com, descarga un modelo (por ejemplo «ollama pull qwen2.5:7b») y autoriza esta web con este comando en PowerShell:"}
             </p>
             <div className="flex items-start gap-1">

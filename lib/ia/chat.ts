@@ -27,6 +27,7 @@ async function chatOllama(config: ConfigIA, sistema: string, historial: MensajeC
     method: "POST",
     headers: { "Content-Type": "application/json" },
     signal: senal,
+    ...({ targetAddressSpace: "local" } as RequestInit),
     body: JSON.stringify({
       model: config.modelo,
       stream: true,
