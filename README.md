@@ -2,7 +2,7 @@
 
 Publicado en **https://excel-dashboard-beta.vercel.app** · código en https://github.com/mauriciochiriboga/excel-dashboard
 
-Convierte cualquier archivo Excel (.xlsx) o CSV con tablas rectangulares en un dashboard analítico interactivo, sin configuración previa. El archivo se procesa íntegramente en el navegador: nada se envía a un servidor.
+Convierte cualquier archivo Excel (.xlsx) o CSV con tablas rectangulares en un dashboard analítico interactivo, sin configuración previa. El análisis se hace íntegramente en el navegador. Solo al pulsar **Guardar** el archivo y el esquema se suben a tu cuenta (Supabase) para volver a abrirlos y compartirlos.
 
 ## Correr en local
 
@@ -37,7 +37,35 @@ vercel deploy --prod
 
 Para que cada `git push` a `main` publique automáticamente, conecta el repositorio de GitHub al proyecto en vercel.com (Settings → Git).
 
-No hay variables de entorno ni backend en esta fase.
+### Variables de entorno
+
+| Variable | Dónde | Valor |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | `.env.local` y Vercel | URL del proyecto Supabase |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `.env.local` y Vercel | Clave `anon` del proyecto |
+
+Ya están cargadas en Vercel para producción, preview y desarrollo. El archivo `.env.local` está ignorado por git.
+
+### Base de datos (Supabase)
+
+Proyecto `excel-dashboard` (ref `cbhzgzulgarmzlbgbhgl`, región São Paulo). El esquema vive en `supabase/migrations/` y se aplica con:
+
+```bash
+supabase db push
+```
+
+La configuración de autenticación (URL del sitio, redirecciones, confirmación por correo) está en `supabase/config.toml` y se aplica con `supabase config push`. **La confirmación por correo está desactivada** para facilitar las pruebas; para exigirla, pon `enable_confirmations = true` en `[auth.email]` y vuelve a hacer push.
+
+Tablas: `perfiles`, `equipos`, `miembros_equipo`, `invitaciones_equipo`, `dashboards`, `permisos_dashboard`, más el bucket privado `archivos`. Todas con políticas RLS: un dashboard lo ve su propietario, los miembros de su equipo, los usuarios con permiso explícito y cualquiera si es público.
+
+## Cuentas, equipos y permisos
+
+- **Registro** con correo y contraseña en `/auth/registrar`; recuperación en `/auth/recuperar`. El **primer usuario registrado es administrador global**.
+- **Guardar** (botón del encabezado) sube el archivo al bucket y el esquema (tipos corregidos, medida principal, filtros, pestaña) a Postgres. Vuelve a abrirse en `/d/<id>` con todo aplicado.
+- **Mis dashboards** (`/mis-dashboards`): creados por mí y compartidos conmigo; renombrar y borrar.
+- **Equipos** (`/equipos`): crear, invitar por correo con rol lector o editor. Si el correo aún no tiene cuenta, queda una invitación que se aplica sola al registrarse.
+- **Compartir** (botón del encabezado, solo el propietario): privado, equipo o público con enlace (`/p/<slug>`, sin sesión). Además, acceso explícito por correo como lector o editor.
+- **Administración** (`/admin`, solo administradores): usuarios con rol global y activación, equipos y dashboards de toda la plataforma. Un usuario normal recibe 403.
 
 ## Cómo funciona
 
@@ -61,3 +89,5 @@ Las correcciones que hagas en **Cómo lo entendí** (tipo de columna, suma o pro
 - **Notas al pie** muy alejadas de la tabla (más de 5.000 filas vacías) se descartan.
 - **Rendimiento**: 50.000 filas cargan en pocos segundos. Libros con decenas de hojas y rangos inflados (hojas que declaran un millón de filas por formato) pueden tardar más de 10 s.
 - **Archivos protegidos** con contraseña no se pueden leer; la app muestra un mensaje claro.
+- **Tamaño al guardar**: el bucket limita cada archivo a 50 MB.
+- **Edición concurrente**: si dos editores guardan a la vez, gana el último; no hay bloqueo ni historial de versiones.
