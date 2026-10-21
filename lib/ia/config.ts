@@ -59,7 +59,7 @@ export interface EstadoOllama {
 /** Detecta Ollama en la máquina del usuario y lista sus modelos. */
 export async function detectarOllama(url: string): Promise<EstadoOllama> {
   const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), 2500);
+  const t = setTimeout(() => ctrl.abort(), 20000); // margen para el aviso de permiso de red local de Chrome
   try {
     // targetAddressSpace: Chrome exige declararlo para llamar a localhost desde una página https (Local Network Access).
     const r = await fetch(`${url.replace(/\/$/, "")}/api/tags`, { signal: ctrl.signal, ...({ targetAddressSpace: "local" } as RequestInit) });
